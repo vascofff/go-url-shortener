@@ -1,0 +1,48 @@
+version: "3.7"
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: 
+      - .env
+    depends_on:
+      - postgres
+    networks:
+      - default
+    tty: true
+    ports:
+    - "8080:8080"
+  postgres:
+    build:
+      context: ./postgres
+      args:
+        - POSTGRES_VERSION=${POSTGRES_VERSION}
+    restart: always
+    volumes:
+      - ${DATA_PATH_HOST}/postgres:/var/lib/postgresql/data
+      - ${POSTGRES_ENTRYPOINT_INITDB}:/docker-entrypoint-initdb.d
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    networks:
+      default:
+        aliases:
+          - database
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    env_file:
+      - .env
+  migrate:
+    image: migrate/migrate
+    networks:
+      - default
+    volumes:
+      - ./migrations:/migrations
+    command:
+      ["-path", "/migrations", "-database", "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable", "up"]
+volumes:
+  data:
+networks:
+  new:
