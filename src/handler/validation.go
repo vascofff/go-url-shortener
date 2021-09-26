@@ -16,13 +16,13 @@ func (urlCreationRequest *UrlCreationRequest) UrlCreationRequestValidate() {
 
 func (urlCreationRequest UrlCreationRequest) validateUrl() {
 	if urlCreationRequest.Url == "" {
-		log.Fatalf("url param can't be empty")
+		log.Fatalf("Url param can't be empty")
 	}
 
-	_, err := url.Parse(urlCreationRequest.Url)
+	_, err := url.ParseRequestURI(urlCreationRequest.Url)
 
 	if err != nil {
-		log.Fatal("Not correct url format")
+		log.Fatal("Not correct url format. Must starts with http(s)://")
 	}
 }
 
