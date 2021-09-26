@@ -42,7 +42,7 @@ func (urlCreationRequest *UrlCreationRequest) validateExpiresOn() {
 
 	expiresOn, _ := time.ParseInLocation(DateLayout, urlCreationRequest.ExpiresOn, time.UTC)
 	if expiresOn.In(time.UTC).Before(time.Now().In(time.UTC)) {
-		log.Fatalf("Given expires_on can't be date in past")
+		log.Fatalf("The received expires_on should not be earlier than tomorrow")
 	}
 
 	urlCreationRequest.ExpiresOn = expiresOn.String()
@@ -51,6 +51,7 @@ func (urlCreationRequest *UrlCreationRequest) validateExpiresOn() {
 }
 
 func isDateExpired(expiresOn string) bool {
-	parsedExpiresOn, _ := time.ParseInLocation(DateLayout, expiresOn, time.UTC)
+	re := regexp.MustCompile(`\d{4}-\d{2}-\d{2}`)
+	parsedExpiresOn, _ := time.Parse(DateLayout, re.FindString(expiresOn))
 	return parsedExpiresOn.In(time.UTC).Before(time.Now().In(time.UTC))
 }

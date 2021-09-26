@@ -37,7 +37,7 @@ func HandleShortUrlRedirect(w http.ResponseWriter, r *http.Request) {
 	uuid := chi.URLParam(r, "uuid")
 
 	if uuid == "" {
-		log.Fatalf("uuid пришел пустой")
+		log.Fatalf("Received uuid is empty")
 	}
 
 	initialUrl, expiresOn := db.RetrieveInitialUrl(uuid)
@@ -45,23 +45,8 @@ func HandleShortUrlRedirect(w http.ResponseWriter, r *http.Request) {
 	if isDateExpired(expiresOn) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode("Date for givel uuid is already expired")
+		json.NewEncoder(w).Encode("Date for given uuid is already expired")
 	}
 
 	http.Redirect(w, r, initialUrl, 302)
 }
-
-// func (creationRequest *UrlCreationRequest) validateUrl() {
-
-// 	if creationRequest.Url == "" {
-// 		log.Fatalf("Url is nil")
-// 	}
-
-// 	_, err := url.Parse(creationRequest.Url)
-
-// 	if err != nil {
-// 		log.Fatal("Url not correct")
-// 	}
-// }
-
-// func (creationRequest *UrlCreationRequest) validateExpiresOn() {}
