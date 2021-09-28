@@ -9,8 +9,8 @@ func RegisterRoutes() *chi.Mux {
 	r := chi.NewRouter()
 
 	r.MethodFunc("GET", "/", handler.SendAGreeting)
-	r.MethodFunc("POST", "/create-short-url", handler.CreateShortUrl)
-	r.MethodFunc("GET", "/{uuid:[a-zA-Z0-9-]+}", handler.HandleShortUrlRedirect)
+	r.MethodFunc("POST", "/short-url/create", handler.CreateShortUrl)
+	r.MethodFunc("GET", "/long-url/{uuid:[a-zA-Z0-9-]+}", handler.HandleShortUrlRedirect)
 
 	r.NotFoundHandler()
 
