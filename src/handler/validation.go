@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"log"
+	"errors"
 	"net/url"
 	"regexp"
 	"time"
@@ -9,49 +9,44 @@ import (
 
 const DateLayout = "2006-01-02"
 
-func (urlCreationRequest *UrlCreationRequest) UrlCreationRequestValidate() {
-	urlCreationRequest.validateUrl()
-	urlCreationRequest.validateExpiresOn()
-}
-
-func (urlCreationRequest UrlCreationRequest) validateUrl() {
-	if urlCreationRequest.Url == "" {
-		log.Fatalf("Url param can't be empty")
+func (urlCreationRequest *UrlCreationRequest) UrlCreationRequestValidate() string {
+	err := urlCreationRequest.validateUrl()
+	if err != nil {
+		return err.Error()
 	}
 
+	err = urlCreationRequest.validateExpiresAt()
+	if err != nil {
+		return err.Error()
+	}
+
+	return ""
+}
+
+func (urlCreationRequest UrlCreationRequest) validateUrl() error {
 	_, err := url.ParseRequestURI(urlCreationRequest.Url)
 
 	if err != nil {
-		log.Fatal("Not correct url format. Must starts with http(s)://")
+		return errors.New("Not correct url format. Must starts with http(s)://")
 	}
+
+	return nil
 }
 
-func (urlCreationRequest *UrlCreationRequest) validateExpiresOn() {
-	var expiresOnRegexp string = `^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$`
-
-	if urlCreationRequest.ExpiresOn == "" {
-		expiresOn := time.Date(9999, 1, 1, 0, 0, 0, 0, time.UTC)
-		urlCreationRequest.ExpiresOn = expiresOn.String()
-		return
+func (urlCreationRequest *UrlCreationRequest) validateExpiresAt() error {
+	if urlCreationRequest.ExpiresAt != "" {
+		expiresAt, _ := time.Parse(DateLayout, urlCreationRequest.ExpiresAt)
+		if expiresAt.In(time.UTC).Before(time.Now().In(time.UTC)) {
+			return errors.New("The received expires_at should not be earlier than tomorrow")
+		}
 	}
 
-	expRe := regexp.MustCompile(expiresOnRegexp)
-	if !expRe.MatchString(urlCreationRequest.ExpiresOn) {
-		log.Fatal("Incorrect expires_on format. Must be like YYYY-MM-DD")
-	}
-
-	expiresOn, _ := time.ParseInLocation(DateLayout, urlCreationRequest.ExpiresOn, time.UTC)
-	if expiresOn.In(time.UTC).Before(time.Now().In(time.UTC)) {
-		log.Fatalf("The received expires_on should not be earlier than tomorrow")
-	}
-
-	urlCreationRequest.ExpiresOn = expiresOn.String()
-
-	return
+	return nil
 }
 
-func isDateExpired(expiresOn string) bool {
+func isDateExpired(expiresAt string) bool {
 	re := regexp.MustCompile(`\d{4}-\d{2}-\d{2}`)
-	parsedExpiresOn, _ := time.Parse(DateLayout, re.FindString(expiresOn))
-	return parsedExpiresOn.In(time.UTC).Before(time.Now().In(time.UTC))
+	parsedExpiresAt, _ := time.Parse(DateLayout, re.FindString(expiresAt))
+
+	return parsedExpiresAt.In(time.UTC).Before(time.Now().In(time.UTC))
 }

@@ -15,7 +15,7 @@ services:
     - "8080:8080"
   postgres:
     build:
-      context: ./postgres
+      context: ./docker/postgres
       args:
         - POSTGRES_VERSION=${POSTGRES_VERSION}
     restart: always

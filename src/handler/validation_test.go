@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIsDateExpiredOn(t *testing.T) {
+func TestIsDateExpiredAt(t *testing.T) {
 	expiredDate1 := "2000-00-00"
 	isDateExpired1 := isDateExpired(expiredDate1)
 

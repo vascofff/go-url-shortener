@@ -10,3 +10,7 @@ expired_on parameter in POST request is optional.
 When u send GET request with uuid there are two possible responses:
 1) message about expired_on date of the link u requested is expired
 2) redirect to original url
+
+create .env file by using comand:
+cp .env.example .env
+and bind your own environment settings

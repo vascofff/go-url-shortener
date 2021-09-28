@@ -2,5 +2,5 @@ CREATE TABLE IF NOT EXISTS urls(
 	uuid UUID PRIMARY KEY,
 	url TEXT NOT NULL,
 	short_url TEXT NOT NULL,
-	expires_on TEXT NULL
+	expires_at TIMESTAMP NULL
 );

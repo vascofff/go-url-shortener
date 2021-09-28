@@ -2,8 +2,8 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
-	"log"
 
 	_ "github.com/lib/pq"
 )
@@ -13,12 +13,12 @@ const (
 	PORT = 5432
 )
 
-type Url struct {
-	UUId     string `json:"uuid"`
-	ShortUrl string `json:"short_url"`
-	LongUrl  string `json:"long_url"`
-	//ExpiresOn uint   `json:"expires_on`
-}
+// type Url struct {
+// 	UUId      string `json:"uuid"`
+// 	ShortUrl  string `json:"short_url"`
+// 	LongUrl   string `json:"long_url"`
+// 	ExpiresAt string `json:"expires_at`
+// }
 
 type Database struct {
 	Conn *sql.DB
@@ -49,35 +49,48 @@ func Initialize(username, password, database string) (Database, error) {
 	return db, nil
 }
 
-func SaveUrlMapping(uuid string, shortUrl string, originalUrl string, expiresOn string) {
-	query, err := dbConn.Conn.Prepare("INSERT INTO urls (uuid, url, short_url, expires_on) VALUES ($1, $2, $3, $4)")
+func SaveUrlMapping(uuid string, shortUrl string, originalUrl string, expiresAt string) error {
+	query, err := dbConn.Conn.Prepare("INSERT INTO urls (uuid, url, short_url, expires_at) VALUES ($1, $2, $3, $4)")
 	if err != nil {
-		panic(fmt.Sprintf("Failed while preparing query to insert"))
+		return errors.New("Failed while preparing query to insert")
 	}
 
-	_, err = query.Exec(uuid, originalUrl, shortUrl, expiresOn)
+	_, err = query.Exec(uuid, originalUrl, shortUrl, NewNullString(expiresAt))
 	if err != nil {
-		panic(fmt.Sprintf("Failed saving key url | Error: %v - shortUrl: %s - originalUrl: %s\n", err, shortUrl, originalUrl))
+		return errors.New(err.Error())
 	}
 
+	return nil
 }
 
-func RetrieveInitialUrl(uuid string) (string, string) {
+func RetrieveInitialUrl(uuid string) (string, string, error) {
 	var (
 		url        string
-		expires_on string
+		expires_at *string
 	)
 
-	row := dbConn.Conn.QueryRow("SELECT url, expires_on FROM urls WHERE uuid = $1", uuid)
-
-	switch err := row.Scan(&url, &expires_on); err {
+	row := dbConn.Conn.QueryRow("SELECT url, expires_at FROM urls WHERE uuid = $1", uuid)
+	switch err := row.Scan(&url, &expires_at); err {
 	case sql.ErrNoRows:
-		log.Fatalf("No rows were returned for uuid: %v", uuid)
+		return "", "", errors.New(fmt.Sprintf("No rows were returned for uuid: %v", uuid))
 	case nil:
-		fmt.Println(url, expires_on)
 	default:
-		panic(err)
+		return "", "", errors.New(err.Error())
 	}
 
-	return url, expires_on
+	if expires_at == nil {
+		return url, "", nil
+	} else {
+		return url, *expires_at, nil
+	}
+}
+
+func NewNullString(s string) sql.NullString {
+	if len(s) == 0 {
+		return sql.NullString{}
+	}
+	return sql.NullString{
+		String: s,
+		Valid:  true,
+	}
 }
