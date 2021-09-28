@@ -40,9 +40,9 @@ func CreateShortUrl(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	errString := creationRequest.UrlCreationRequestValidate()
-	if errString != "" {
-		data := response.Data{"message": errString}
+	err = creationRequest.UrlCreationRequestValidate()
+	if err != nil {
+		data := response.Data{"message": err.Error()}
 		response.JsonResponse(w, http.StatusBadRequest, data)
 		return
 	}
@@ -59,7 +59,7 @@ func CreateShortUrl(w http.ResponseWriter, r *http.Request) {
 
 	host := "http://localhost:9808/"
 
-	data := response.Data{"message": host + uuid}
+	data := response.Data{"message": host + "long-url/" + uuid}
 	response.JsonResponse(w, http.StatusCreated, data)
 }
 

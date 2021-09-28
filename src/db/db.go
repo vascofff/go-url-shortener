@@ -2,23 +2,16 @@ package db
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 
 	_ "github.com/lib/pq"
+	"github.com/pkg/errors"
 )
 
 const (
 	HOST = "localhost"
 	PORT = 5432
 )
-
-// type Url struct {
-// 	UUId      string `json:"uuid"`
-// 	ShortUrl  string `json:"short_url"`
-// 	LongUrl   string `json:"long_url"`
-// 	ExpiresAt string `json:"expires_at`
-// }
 
 type Database struct {
 	Conn *sql.DB
@@ -52,12 +45,12 @@ func Initialize(username, password, database string) (Database, error) {
 func SaveUrlMapping(uuid string, shortUrl string, originalUrl string, expiresAt string) error {
 	query, err := dbConn.Conn.Prepare("INSERT INTO urls (uuid, url, short_url, expires_at) VALUES ($1, $2, $3, $4)")
 	if err != nil {
-		return errors.New("Failed while preparing query to insert")
+		return errors.Wrap(err, "failed while preparing query to insert")
 	}
 
-	_, err = query.Exec(uuid, originalUrl, shortUrl, NewNullString(expiresAt))
+	_, err = query.Exec(uuid, originalUrl, shortUrl, newNullString(expiresAt))
 	if err != nil {
-		return errors.New(err.Error())
+		return errors.Wrap(err, "failed while executing query while insert")
 	}
 
 	return nil
@@ -70,12 +63,12 @@ func RetrieveInitialUrl(uuid string) (string, string, error) {
 	)
 
 	row := dbConn.Conn.QueryRow("SELECT url, expires_at FROM urls WHERE uuid = $1", uuid)
-	switch err := row.Scan(&url, &expires_at); err {
-	case sql.ErrNoRows:
-		return "", "", errors.New(fmt.Sprintf("No rows were returned for uuid: %v", uuid))
-	case nil:
-	default:
-		return "", "", errors.New(err.Error())
+	err := row.Scan(&url, &expires_at)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", "", errors.Wrap(err, fmt.Sprintf("no rows were returned for uuid: %v", uuid))
+	}
+	if err != nil {
+		return "", "", errors.Wrap(err, "failed to execute query when getting initial url")
 	}
 
 	if expires_at == nil {
@@ -85,7 +78,7 @@ func RetrieveInitialUrl(uuid string) (string, string, error) {
 	}
 }
 
-func NewNullString(s string) sql.NullString {
+func newNullString(s string) sql.NullString {
 	if len(s) == 0 {
 		return sql.NullString{}
 	}

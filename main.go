@@ -5,11 +5,9 @@ import (
 	"net/http"
 	"os"
 
-	// "github.com/go-chi/chi/v5"
 	"github.com/joho/godotenv"
 	"github.com/vascofff/go-url-shortener/router"
 	"github.com/vascofff/go-url-shortener/src/db"
-	// "github.com/vascofff/go-url-shortener/src/handler"
 )
 
 func main() {

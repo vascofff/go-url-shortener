@@ -1,33 +1,34 @@
 package handler
 
 import (
-	"errors"
 	"net/url"
 	"regexp"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 const DateLayout = "2006-01-02"
 
-func (urlCreationRequest *UrlCreationRequest) UrlCreationRequestValidate() string {
+func (urlCreationRequest *UrlCreationRequest) UrlCreationRequestValidate() error {
 	err := urlCreationRequest.validateUrl()
 	if err != nil {
-		return err.Error()
+		return errors.Wrap(err, err.Error())
 	}
 
 	err = urlCreationRequest.validateExpiresAt()
 	if err != nil {
-		return err.Error()
+		return errors.Wrap(err, err.Error())
 	}
 
-	return ""
+	return nil
 }
 
 func (urlCreationRequest UrlCreationRequest) validateUrl() error {
 	_, err := url.ParseRequestURI(urlCreationRequest.Url)
 
 	if err != nil {
-		return errors.New("Not correct url format. Must starts with http(s)://")
+		return errors.New("not correct url format. Must starts with http(s)://")
 	}
 
 	return nil
@@ -35,9 +36,12 @@ func (urlCreationRequest UrlCreationRequest) validateUrl() error {
 
 func (urlCreationRequest *UrlCreationRequest) validateExpiresAt() error {
 	if urlCreationRequest.ExpiresAt != "" {
-		expiresAt, _ := time.Parse(DateLayout, urlCreationRequest.ExpiresAt)
+		expiresAt, err := time.Parse(DateLayout, urlCreationRequest.ExpiresAt)
+		if err != nil {
+			return errors.New("error while parsing input expires_at data")
+		}
 		if expiresAt.In(time.UTC).Before(time.Now().In(time.UTC)) {
-			return errors.New("The received expires_at should not be earlier than tomorrow")
+			return errors.New("the received expires_at should not be earlier than tomorrow")
 		}
 	}
 
