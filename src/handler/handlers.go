@@ -6,11 +6,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
-	"github.com/google/uuid"
 
-	"github.com/vascofff/go-url-shortener/src/db"
 	"github.com/vascofff/go-url-shortener/src/response"
-	"github.com/vascofff/go-url-shortener/src/shortener"
+	"github.com/vascofff/go-url-shortener/src/url"
+	"github.com/vascofff/go-url-shortener/validation"
 )
 
 type UrlCreationRequest struct {
@@ -25,6 +24,7 @@ func SendAGreeting(w http.ResponseWriter, _ *http.Request) {
 
 func CreateShortUrl(w http.ResponseWriter, r *http.Request) {
 	var creationRequest UrlCreationRequest
+
 	err := json.NewDecoder(r.Body).Decode(&creationRequest)
 	if err != nil {
 		data := response.Data{"message": "Can't get data from request"}
@@ -40,25 +40,27 @@ func CreateShortUrl(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = creationRequest.UrlCreationRequestValidate()
-	if err != nil {
-		data := response.Data{"message": err.Error()}
+	urlValidateErr := validation.ValidateUrl(creationRequest.Url)
+	if urlValidateErr != nil {
+		data := response.Data{"message": urlValidateErr.Error()}
 		response.JsonResponse(w, http.StatusBadRequest, data)
 		return
 	}
 
-	shortUrl := shortener.GenerateShortLink(creationRequest.Url)
-	uuid := uuid.New().String()
-
-	saveUrlMappingErr := db.SaveUrlMapping(uuid, shortUrl, creationRequest.Url, creationRequest.ExpiresAt)
-	if saveUrlMappingErr != nil {
-		data := response.Data{"message": saveUrlMappingErr.Error()}
-		response.JsonResponse(w, http.StatusInsufficientStorage, data)
+	_, expiresAtValidateErr := validation.ValidateExpiresAt(&creationRequest.ExpiresAt)
+	if expiresAtValidateErr != nil {
+		data := response.Data{"message": expiresAtValidateErr.Error()}
+		response.JsonResponse(w, http.StatusBadRequest, data)
 		return
 	}
 
-	host := "http://localhost:9808/"
+	uuid, createErr := url.CreateShortUrl(creationRequest.Url, &creationRequest.ExpiresAt)
+	if createErr != nil {
+		data := response.Data{"message": createErr.Error()}
+		response.JsonResponse(w, http.StatusInternalServerError, data)
+	}
 
+	host := "http://localhost:9808/"
 	data := response.Data{"message": host + "long-url/" + uuid}
 	response.JsonResponse(w, http.StatusCreated, data)
 }
@@ -72,17 +74,17 @@ func HandleShortUrlRedirect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	initialUrl, expiresAt, retrieveInitialUrlErr := db.RetrieveInitialUrl(uuid)
-	if retrieveInitialUrlErr != nil {
-		data := response.Data{"message": retrieveInitialUrlErr.Error()}
-		response.JsonResponse(w, http.StatusInsufficientStorage, data)
+	initialUrl, expiresAt, err := url.GetLongUrlWithExpiresAt(uuid)
+	if err != nil {
+		data := response.Data{"message": err.Error()}
+		response.JsonResponse(w, http.StatusInternalServerError, data)
 		return
 	}
 
-	if expiresAt != "" {
-		if isDateExpired(expiresAt) {
-			data := response.Data{"message": "Date for given uuid is already expired"}
-			response.JsonResponse(w, http.StatusCreated, data)
+	if expiresAt != nil {
+		if validation.IsDateExpired(*expiresAt) {
+			data := response.Data{"message": err.Error()}
+			response.JsonResponse(w, http.StatusOK, data)
 			return
 		}
 	}

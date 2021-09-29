@@ -42,13 +42,13 @@ func Initialize(username, password, database string) (Database, error) {
 	return db, nil
 }
 
-func SaveUrlMapping(uuid string, shortUrl string, originalUrl string, expiresAt string) error {
+func SaveUrlMapping(uuid string, shortUrl string, originalUrl string, expiresAt *string) error {
 	query, err := dbConn.Conn.Prepare("INSERT INTO urls (uuid, url, short_url, expires_at) VALUES ($1, $2, $3, $4)")
 	if err != nil {
 		return errors.Wrap(err, "failed while preparing query to insert")
 	}
 
-	_, err = query.Exec(uuid, originalUrl, shortUrl, newNullString(expiresAt))
+	_, err = query.Exec(uuid, originalUrl, shortUrl, newNullString(*expiresAt))
 	if err != nil {
 		return errors.Wrap(err, "failed while executing query while insert")
 	}
